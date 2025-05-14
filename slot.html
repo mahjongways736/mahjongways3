@@ -2,166 +2,111 @@
 <head>
   <meta charset="UTF-8">
   <title>Slot Mahjong Emoji</title>
-  <style>
-    body {
-      background: #1a1a1a;
-      color: #fff;
-      font-family: Arial, sans-serif;
-      text-align: center;
-    }
-    .container {
-      max-width: 450px;
-      margin: 40px auto;
-      background: #2c2c2c;
-      padding: 20px;
-      border-radius: 10px;
-      display: none;
-    }
-    .reels {
-      display: flex;
-      justify-content: space-around;
-      margin: 20px 0;
-    }
-    .reel {
-      width: 70px;
-      height: 70px;
-      background: #000;
-      border: 2px solid #fff;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 40px;
-    }
-    input, button {
-      padding: 10px;
-      margin: 5px;
-      width: 80%;
-      font-size: 16px;
-      border-radius: 5px;
-      border: none;
-    }
-    #spinResult {
-      margin-top: 15px;
-      font-size: 18px;
-    }
-  </style>
-</head>
-<body><!-- Form Login User --><div id="loginUserForm">
-  <h2>Masuk ke Slot Mahjong</h2>
-  <input type="text" id="inputUsername" placeholder="Masukkan Username">
-  <button onclick="loginUser()">Masuk</button>
-</div><!-- Game Container --><div class="container">
-  <h2>Slot Mahjong Emoji</h2>
-  <p>Saldo: Rp<span id="saldoTampil"></span></p>
-  <label>Taruhan (Rp):</label>
-  <input type="number" id="betAmount" value="400" min="400" max="100000" step="100">
-  <button onclick="spinGame()">SPIN</button>  <div class="reels">
-    <div class="reel" id="reel1">🀄</div>
-    <div class="reel" id="reel2">🀇</div>
-    <div class="reel" id="reel3">🀈</div>
-    <div class="reel" id="reel4">🀉</div>
-    <div class="reel" id="reel5">🀊</div>
-  </div>  <p id="spinResult"></p>
-  <button onclick="lihatLog()">Lihat Log</button>
-  <div id="logTransaksi"></div>
-</div><!-- Firebase --><script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-  import { getDatabase, ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+    import { getDatabase, ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";const firebaseConfig = {
+  apiKey: "AIzaSyAThDmthe18wYK8uTKS6rdp1V6yGmzSHds",
+  authDomain: "slotmahjong-92afb.firebaseapp.com",
+  databaseURL: "https://slotmahjong-92afb-default-rtdb.firebaseio.com",
+  projectId: "slotmahjong-92afb",
+  storageBucket: "slotmahjong-92afb.appspot.com",
+  messagingSenderId: "700849730294",
+  appId: "1:700849730294:web:17736d11c28b4d381132d7"
+};
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAThDmthe18wYK8uTKS6rdp1V6yGmzSHds",
-    authDomain: "slotmahjong-92afb.firebaseapp.com",
-    databaseURL: "https://slotmahjong-92afb-default-rtdb.firebaseio.com",
-    projectId: "slotmahjong-92afb",
-    storageBucket: "slotmahjong-92afb.appspot.com",
-    messagingSenderId: "700849730294",
-    appId: "1:700849730294:web:17736d11c28b4d381132d7"
-  };
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+let username = localStorage.getItem("username") || "";
+let saldo = 0;
 
-  const emojiList = ["🀄", "🀇", "🀈", "🀉", "🀊", "🀋", "🀌", "🀍"];
-  const username = localStorage.getItem("username");
-  let saldo = 0;
+function updateUI() {
+  document.getElementById("saldoTampil").innerText = saldo.toLocaleString();
+}
 
+function loadSaldo(uname) {
+  const saldoRef = ref(database, 'users/' + uname + '/saldo');
+  onValue(saldoRef, (snapshot) => {
+    saldo = snapshot.exists() ? snapshot.val() : 0;
+    updateUI();
+  });
+}
+
+function loginUser() {
+  const uname = document.getElementById("inputUsername").value.trim();
+  if (!uname) return alert("Masukkan username!");
+  localStorage.setItem("username", uname);
+  username = uname;
+  document.querySelector(".container").style.display = "block";
+  document.getElementById("loginUserForm").style.display = "none";
+  loadSaldo(uname);
+}
+
+window.loginUser = loginUser;
+
+window.onload = function() {
   if (username) {
     document.querySelector(".container").style.display = "block";
     document.getElementById("loginUserForm").style.display = "none";
-    loadSaldo();
+    loadSaldo(username);
   }
 
-  function loginUser() {
-    const uname = document.getElementById("inputUsername").value.trim();
-    if (!uname) return alert("Masukkan username!");
-    localStorage.setItem("username", uname);
-    location.reload();
+  if (localStorage.getItem("adminLoggedIn") === "true") {
+    const btn = document.getElementById("adminBtn");
+    btn.innerText = "Panel Admin";
+    btn.onclick = () => location.href = "admin.html";
+    document.getElementById("loginForm").style.display = "none";
   }
+}
 
-  function loadSaldo() {
-    const saldoRef = ref(db, 'saldo/' + username);
-    onValue(saldoRef, (snapshot) => {
-      saldo = snapshot.exists() ? snapshot.val() : 0;
-      document.getElementById("saldoTampil").innerText = saldo.toLocaleString();
-    });
-  }
-
-  async function spinGame() {
-    const bet = parseInt(document.getElementById("betAmount").value);
-    if (isNaN(bet) || bet < 400 || bet > 100000) {
-      return alert("Taruhan harus antara 400 - 100000!");
+  </script>
+  <style>
+    body { background: #1a1a1a; color: #fff; font-family: Arial, sans-serif; text-align: center; }
+    .container {
+      max-width: 450px; margin: 40px auto; background: #2c2c2c; padding: 20px;
+      border-radius: 10px; display: none;
     }
-    if (saldo < bet) {
-      return alert("Saldo tidak cukup, mohon deposit ke admin.");
+    .reels { display: flex; justify-content: space-around; margin: 20px 0; }
+    .reel {
+      width: 70px; height: 70px; background: #000; border: 2px solid #fff;
+      border-radius: 8px; display: flex; align-items: center;
+      justify-content: center; font-size: 40px;
     }
-
-    saldo -= bet;
-    await set(ref(db, 'saldo/' + username), saldo);
-    document.getElementById("saldoTampil").innerText = saldo.toLocaleString();
-
-    const winChance = 10; // default 10%
-    const menang = Math.random() * 100 < winChance;
-    let hasil = "Kalah! -Rp" + bet.toLocaleString();
-    let reels = [];
-
-    if (menang) {
-      const r = emojiList[Math.floor(Math.random() * emojiList.length)];
-      reels = [r, r, r, r, r];
-      const kemenangan = bet * 5;
-      saldo += kemenangan;
-      hasil = `Menang! +Rp${kemenangan.toLocaleString()}`;
-      await set(ref(db, 'saldo/' + username), saldo);
-      document.getElementById("saldoTampil").innerText = saldo.toLocaleString();
-    } else {
-      for (let i = 0; i < 5; i++) {
-        reels.push(emojiList[Math.floor(Math.random() * emojiList.length)]);
-      }
+    input, button {
+      padding: 10px; margin: 5px; width: 80%; font-size: 16px;
+      border-radius: 5px; border: none;
     }
+    #spinResult { margin-top: 15px; font-size: 18px; }
+  </style>
+</head>
+<body>
+  <div id="loginUserForm">
+    <h2>Masuk ke Slot Mahjong</h2>
+    <input type="text" id="inputUsername" placeholder="Masukkan Username">
+    <button onclick="loginUser()">Masuk</button>
+  </div>  <div class="container">
+    <h2>Slot Mahjong Emoji</h2>
+    <p>Saldo: Rp<span id="saldoTampil">0</span></p>
+    <label>Taruhan (Rp):</label>
+    <input type="number" id="betAmount" value="400" min="400" max="100000" step="100">
+    <button onclick="spinGame()">SPIN</button><div class="reels">
+  <div class="reel" id="reel1">🀄</div>
+  <div class="reel" id="reel2">🀇</div>
+  <div class="reel" id="reel3">🀈</div>
+  <div class="reel" id="reel4">🀉</div>
+  <div class="reel" id="reel5">🀊</div>
+</div>
 
-    for (let i = 0; i < 5; i++) {
-      document.getElementById(`reel${i + 1}`).innerText = reels[i];
-    }
-    document.getElementById("spinResult").innerText = hasil;
+<p id="spinResult"></p>
+<button onclick="lihatLog()">Lihat Log</button>
+<div id="logTransaksi"></div>
 
-    const logRef = ref(db, 'log/' + username);
-    get(logRef).then(snapshot => {
-      let log = snapshot.exists() ? snapshot.val() : [];
-      log.unshift({ tanggal: new Date().toLocaleString(), taruhan: bet, hasil: hasil, saldo: saldo });
-      set(logRef, log);
-    });
-  }
+  </div><button onclick="toggleLoginForm()" id="adminBtn" style="margin-top: 20px;">Admin Login</button>
 
-  function lihatLog() {
-    const logRef = ref(db, 'log/' + username);
-    get(logRef).then(snapshot => {
-      const div = document.getElementById("logTransaksi");
-      if (!snapshot.exists()) return div.innerHTML = "<p>Tidak ada log.</p>";
-      const log = snapshot.val();
-      div.innerHTML = "<h3>Log Transaksi</h3>" + log.map(item => `
-        <p>${item.tanggal} - Taruhan: Rp${item.taruhan.toLocaleString()} - ${item.hasil} (Saldo: Rp${item.saldo.toLocaleString()})</p>
-      `).join('');
-    });
-  }
-</script></body>
+  <div id="loginForm" style="display:none; margin-top:10px;">
+    <input type="text" id="adminUser" placeholder="Username Admin"><br>
+    <input type="password" id="adminPass" placeholder="Password"><br>
+    <button onclick="loginAdmin()">Login</button>
+  </div>
+</body>
 </html>
