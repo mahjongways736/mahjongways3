@@ -39,7 +39,6 @@
       display: none;
     }
   </style>
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script>
@@ -103,17 +102,17 @@
       database.ref("players").once("value", snapshot => {
         let html = "<table><tr><th>Nama</th><th>Saldo</th><th>Aksi</th></tr>";
         snapshot.forEach(child => {
-          const nama = child.key;
+          const encodedNama = child.key;
+          const nama = decodeURIComponent(encodedNama);
           const saldo = child.val().saldo || 0;
-          const safeNama = encodeURIComponent(nama);
           html += `<tr>
             <td>${nama}</td>
             <td>Rp${saldo.toLocaleString()}</td>
             <td>
-              <button onclick="tambahSaldo(decodeURIComponent('${safeNama}'))">+ Saldo</button>
-              <button onclick="editSaldo(decodeURIComponent('${safeNama}'))">Edit</button>
-              <button onclick="hapusPlayer(decodeURIComponent('${safeNama}'))">Hapus</button>
-              <button onclick="lihatLog(decodeURIComponent('${safeNama}'))">Log</button>
+              <button onclick="tambahSaldo('${encodedNama}')">+ Saldo</button>
+              <button onclick="editSaldo('${encodedNama}')">Edit</button>
+              <button onclick="hapusPlayer('${encodedNama}')">Hapus</button>
+              <button onclick="lihatLog('${encodedNama}')">Log</button>
             </td>
           </tr>`;
         });
@@ -132,11 +131,12 @@
       }
     }
 
-    function tambahSaldo(nama) {
-      const jumlahStr = prompt("Tambah saldo berapa?", "10000");
+    function tambahSaldo(encodedNama) {
+      const nama = decodeURIComponent(encodedNama);
+      const jumlahStr = prompt(`Tambah saldo untuk ${nama}`, "10000");
       const jumlah = parseInt(jumlahStr);
       if (!isNaN(jumlah) && jumlah > 0) {
-        const saldoRef = database.ref("players/" + nama + "/saldo");
+        const saldoRef = database.ref("players/" + encodedNama + "/saldo");
         saldoRef.get().then(snapshot => {
           const saldoLama = snapshot.exists() ? snapshot.val() : 0;
           saldoRef.set(saldoLama + jumlah).then(() => {
@@ -144,15 +144,15 @@
             tampilkanData();
           });
         });
-      } else {
-        alert("Masukkan jumlah saldo yang valid.");
       }
     }
 
-    function editSaldo(nama) {
-      const jumlah = prompt("Masukkan saldo baru:", "100000");
-      if (jumlah) {
-        database.ref("players/" + nama + "/saldo").set(parseInt(jumlah)).then(() => {
+    function editSaldo(encodedNama) {
+      const nama = decodeURIComponent(encodedNama);
+      const jumlahStr = prompt(`Masukkan saldo baru untuk ${nama}:`, "100000");
+      const jumlah = parseInt(jumlahStr);
+      if (!isNaN(jumlah)) {
+        database.ref("players/" + encodedNama + "/saldo").set(jumlah).then(() => {
           tampilkanData();
         });
       }
@@ -169,17 +169,19 @@
       }
     }
 
-    function hapusPlayer(nama) {
-      if (confirm("Hapus pemain ini?")) {
-        database.ref("players/" + nama).remove().then(() => {
+    function hapusPlayer(encodedNama) {
+      const nama = decodeURIComponent(encodedNama);
+      if (confirm(`Hapus pemain ${nama}?`)) {
+        database.ref("players/" + encodedNama).remove().then(() => {
           tampilkanData();
         });
       }
     }
 
-    function lihatLog(nama) {
+    function lihatLog(encodedNama) {
+      const nama = decodeURIComponent(encodedNama);
       const div = document.getElementById("logSemua");
-      database.ref("logs/" + nama).once("value", snapshot => {
+      database.ref("logs/" + encodedNama).once("value", snapshot => {
         const log = snapshot.val();
         if (log) {
           const logHtml = Object.values(log).map(item => `
