@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="id">
+<!DOCTYPE html><html lang="id">
 <head>
   <meta charset="UTF-8">
   <title>Slot Mahjong Emoji</title>
@@ -48,59 +47,49 @@
     }
   </style>
 </head>
-<body>
-
-<!-- Form Login User -->
-<div id="loginUserForm">
+<body><!-- Form Login User --><div id="loginUserForm">
   <h2>Masuk ke Slot Mahjong</h2>
   <input type="text" id="inputUsername" placeholder="Masukkan Username">
   <button onclick="loginUser()">Masuk</button>
-</div>
-
-<!-- Game Container -->
-<div class="container">
+</div><!-- Game Container --><div class="container">
   <h2>Slot Mahjong Emoji</h2>
   <p>Saldo: Rp<span id="saldoTampil"></span></p>
   <label>Taruhan (Rp):</label>
   <input type="number" id="betAmount" value="400" min="400" max="100000" step="100">
-  <button onclick="spinGame()">SPIN</button>
-
-  <div class="reels">
+  <button onclick="spinGame()">SPIN</button>  <div class="reels">
     <div class="reel" id="reel1">🀄</div>
     <div class="reel" id="reel2">🀇</div>
     <div class="reel" id="reel3">🀈</div>
     <div class="reel" id="reel4">🀉</div>
     <div class="reel" id="reel5">🀊</div>
-  </div>
-
-  <p id="spinResult"></p>
+  </div>  <p id="spinResult"></p>
   <button onclick="lihatLog()">Lihat Log</button>
   <div id="logTransaksi"></div>
-</div>
+</div><!-- Firebase --><script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+  import { getDatabase, ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
 
-<!-- Tombol Admin -->
-<button onclick="toggleLoginForm()" id="adminBtn">Admin Login</button>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAThDmthe18wYK8uTKS6rdp1V6yGmzSHds",
+    authDomain: "slotmahjong-92afb.firebaseapp.com",
+    databaseURL: "https://slotmahjong-92afb-default-rtdb.firebaseio.com",
+    projectId: "slotmahjong-92afb",
+    storageBucket: "slotmahjong-92afb.appspot.com",
+    messagingSenderId: "700849730294",
+    appId: "1:700849730294:web:17736d11c28b4d381132d7"
+  };
 
-<!-- Form Login Admin -->
-<div id="loginForm" style="display:none; margin-top:10px;">
-  <input type="text" id="adminUser" placeholder="Username Admin"><br>
-  <input type="password" id="adminPass" placeholder="Password"><br>
-  <button onclick="loginAdmin()">Login</button>
-</div>
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
-<script>
   const emojiList = ["🀄", "🀇", "🀈", "🀉", "🀊", "🀋", "🀌", "🀍"];
   const username = localStorage.getItem("username");
-  const saldoKey = "saldo_" + username;
+  let saldo = 0;
 
   if (username) {
     document.querySelector(".container").style.display = "block";
     document.getElementById("loginUserForm").style.display = "none";
-  }
-
-  let saldo = parseInt(localStorage.getItem(saldoKey) || "0");
-  if (username) {
-    document.getElementById("saldoTampil").innerText = saldo.toLocaleString();
+    loadSaldo();
   }
 
   function loginUser() {
@@ -110,22 +99,29 @@
     location.reload();
   }
 
-  function spinGame() {
+  function loadSaldo() {
+    const saldoRef = ref(db, 'saldo/' + username);
+    onValue(saldoRef, (snapshot) => {
+      saldo = snapshot.exists() ? snapshot.val() : 0;
+      document.getElementById("saldoTampil").innerText = saldo.toLocaleString();
+    });
+  }
+
+  async function spinGame() {
     const bet = parseInt(document.getElementById("betAmount").value);
     if (isNaN(bet) || bet < 400 || bet > 100000) {
       return alert("Taruhan harus antara 400 - 100000!");
     }
     if (saldo < bet) {
-      return alert("Saldo tidak cukup, mohon deposit ke admin, no whatsapp 088224274374.");
+      return alert("Saldo tidak cukup, mohon deposit ke admin.");
     }
 
     saldo -= bet;
-    localStorage.setItem(saldoKey, saldo);
+    await set(ref(db, 'saldo/' + username), saldo);
     document.getElementById("saldoTampil").innerText = saldo.toLocaleString();
 
-    const winChance = parseInt(localStorage.getItem("winChance") || "10");
+    const winChance = 10; // default 10%
     const menang = Math.random() * 100 < winChance;
-
     let hasil = "Kalah! -Rp" + bet.toLocaleString();
     let reels = [];
 
@@ -135,7 +131,7 @@
       const kemenangan = bet * 5;
       saldo += kemenangan;
       hasil = `Menang! +Rp${kemenangan.toLocaleString()}`;
-      localStorage.setItem(saldoKey, saldo);
+      await set(ref(db, 'saldo/' + username), saldo);
       document.getElementById("saldoTampil").innerText = saldo.toLocaleString();
     } else {
       for (let i = 0; i < 5; i++) {
@@ -146,58 +142,26 @@
     for (let i = 0; i < 5; i++) {
       document.getElementById(`reel${i + 1}`).innerText = reels[i];
     }
-
     document.getElementById("spinResult").innerText = hasil;
 
-    const logKey = "log_" + username;
-    let log = JSON.parse(localStorage.getItem(logKey) || "[]");
-    log.unshift({
-      tanggal: new Date().toLocaleString(),
-      taruhan: bet,
-      hasil: hasil,
-      saldo: saldo
+    const logRef = ref(db, 'log/' + username);
+    get(logRef).then(snapshot => {
+      let log = snapshot.exists() ? snapshot.val() : [];
+      log.unshift({ tanggal: new Date().toLocaleString(), taruhan: bet, hasil: hasil, saldo: saldo });
+      set(logRef, log);
     });
-    localStorage.setItem(logKey, JSON.stringify(log));
   }
 
   function lihatLog() {
-    const logKey = "log_" + username;
-    const log = JSON.parse(localStorage.getItem(logKey) || "[]");
-    const div = document.getElementById("logTransaksi");
-    div.innerHTML = "<h3>Log Transaksi</h3>" + log.map(item => `
-      <p>${item.tanggal} - Taruhan: Rp${item.taruhan.toLocaleString()} - ${item.hasil} (Saldo: Rp${item.saldo.toLocaleString()})</p>
-    `).join('');
+    const logRef = ref(db, 'log/' + username);
+    get(logRef).then(snapshot => {
+      const div = document.getElementById("logTransaksi");
+      if (!snapshot.exists()) return div.innerHTML = "<p>Tidak ada log.</p>";
+      const log = snapshot.val();
+      div.innerHTML = "<h3>Log Transaksi</h3>" + log.map(item => `
+        <p>${item.tanggal} - Taruhan: Rp${item.taruhan.toLocaleString()} - ${item.hasil} (Saldo: Rp${item.saldo.toLocaleString()})</p>
+      `).join('');
+    });
   }
-
-  function toggleLoginForm() {
-    const form = document.getElementById("loginForm");
-    form.style.display = form.style.display === "none" ? "block" : "none";
-  }
-
-  function loginAdmin() {
-    const user = document.getElementById("adminUser").value;
-    const pass = document.getElementById("adminPass").value;
-
-    if (user === "admin" && pass === "12345") {
-      localStorage.setItem("adminLoggedIn", "true");
-      alert("Login berhasil!");
-      document.getElementById("adminBtn").innerText = "Panel Admin";
-      document.getElementById("adminBtn").onclick = () => location.href = "admin.html";
-      document.getElementById("loginForm").style.display = "none";
-    } else {
-      alert("Username atau password salah!");
-    }
-  }
-
-  window.onload = function() {
-    if (localStorage.getItem("adminLoggedIn") === "true") {
-      const btn = document.getElementById("adminBtn");
-      btn.innerText = "Panel Admin";
-      btn.onclick = () => location.href = "admin.html";
-      document.getElementById("loginForm").style.display = "none";
-    }
-  };
-</script>
-
-</body>
+</script></body>
 </html>
