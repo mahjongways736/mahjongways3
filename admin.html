@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="id">
+<!DOCTYPE html>
+<html lang="id">
 <head>
   <meta charset="UTF-8" />
   <title>Admin Panel - Slot Mahjong</title>
@@ -51,7 +52,7 @@
       messagingSenderId: "700849730294",
       appId: "1:700849730294:web:17736d11c28b4d381132d7"
     };
-    firebase.initializeApp(firebaseConfig);
+    const app = firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
   </script>
 </head>
@@ -94,7 +95,7 @@
     }
 
     function tampilkanData() {
-      database.ref("settings/winChance").once("value", snapshot => {
+      database.ref("settings/winChance").get().then(snapshot => {
         const current = snapshot.exists() ? snapshot.val() : 25;
         document.getElementById("currentChance").innerText = current;
       });
@@ -104,14 +105,15 @@
         snapshot.forEach(child => {
           const nama = child.key;
           const saldo = child.val().saldo || 0;
+          const safeNama = encodeURIComponent(nama);
           html += `<tr>
             <td>${nama}</td>
             <td>Rp${saldo.toLocaleString()}</td>
             <td>
-              <button onclick="tambahSaldo('${nama}')">+ Saldo</button>
-              <button onclick="editSaldo('${nama}')">Edit</button>
-              <button onclick="hapusPlayer('${nama}')">Hapus</button>
-              <button onclick="lihatLog('${nama}')">Log</button>
+              <button onclick="tambahSaldo(decodeURIComponent('${safeNama}'))">+ Saldo</button>
+              <button onclick="editSaldo(decodeURIComponent('${safeNama}'))">Edit</button>
+              <button onclick="hapusPlayer(decodeURIComponent('${safeNama}'))">Hapus</button>
+              <button onclick="lihatLog(decodeURIComponent('${safeNama}'))">Log</button>
             </td>
           </tr>`;
         });
@@ -135,7 +137,7 @@
       const jumlah = parseInt(jumlahStr);
       if (!isNaN(jumlah) && jumlah > 0) {
         const saldoRef = database.ref("players/" + nama + "/saldo");
-        saldoRef.once("value", snapshot => {
+        saldoRef.get().then(snapshot => {
           const saldoLama = snapshot.exists() ? snapshot.val() : 0;
           saldoRef.set(saldoLama + jumlah).then(() => {
             alert(`Saldo ${nama} berhasil ditambah Rp${jumlah.toLocaleString()}`);
