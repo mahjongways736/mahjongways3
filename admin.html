@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Panel - Slot Mahjong</title>
+  <style>
+    body {
+      background: #1a1a1a;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #2c2c2c;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    input, button, select {
+      padding: 10px;
+      margin: 5px;
+      width: 80%;
+      font-size: 16px;
+      border-radius: 5px;
+      border: none;
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+      color: #fff;
+    }
+    th, td {
+      padding: 8px;
+      border: 1px solid #555;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="loginPanel">
+    <h2>Admin Login</h2>
+    <input type="password" id="adminPass" placeholder="Password Admin" />
+    <button onclick="loginAdmin()">Login</button>
+    <p id="loginMsg"></p>
+  </div>
+
+  <div class="container hidden" id="adminPanel">
+    <h2>Admin Panel</h2>
+    <p>Peluang Menang Saat Ini: <span id="currentChance"></span>%</p>
+    <input type="number" id="newChance" min="1" max="100" placeholder="Ubah peluang menang (1-100)" />
+    <button onclick="ubahPeluang()">Update Peluang</button>
+
+    <h3>Daftar Pemain</h3>
+    <div id="playersList"></div>
+
+    <button onclick="resetSemuaSaldo()">Reset Semua Saldo</button>
+    <button onclick="logout()">Logout</button>
+
+    <h3>Log Transaksi Semua Pemain</h3>
+    <div id="logSemua"></div>
+  </div>
+
+  <script>
+    const adminPassword = "admin123"; // Ganti sesuai keinginan
+    function loginAdmin() {
+      const pass = document.getElementById("adminPass").value;
+      if (pass === adminPassword) {
+        document.getElementById("loginPanel").classList.add("hidden");
+        document.getElementById("adminPanel").classList.remove("hidden");
+        tampilkanData();
+      } else {
+        document.getElementById("loginMsg").innerText = "Password salah!";
+      }
+    }
+
+    function tampilkanData() {
+      const current = localStorage.getItem("winChance") || "25";
+      document.getElementById("currentChance").innerText = current;
+
+      let html = "<table><tr><th>Nama</th><th>Saldo</th><th>Aksi</th></tr>";
+      for (let key in localStorage) {
+        if (key.startsWith("saldo_")) {
+          const nama = key.replace("saldo_", "");
+          const saldo = parseInt(localStorage.getItem(key));
+          html += `<tr>
+            <td>${nama}</td>
+            <td>Rp${saldo.toLocaleString()}</td>
+            <td>
+              <button onclick="tambahSaldo('${nama}')">+ Saldo</button>
+              <button onclick="editSaldo('${nama}')">Edit</button>
+              <button onclick="hapusPlayer('${nama}')">Hapus</button>
+              <button onclick="lihatLog('${nama}')">Log</button>
+            </td>
+          </tr>`;
+        }
+      }
+      html += "</table>";
+      document.getElementById("playersList").innerHTML = html;
+    }
+
+    function ubahPeluang() {
+      const baru = parseInt(document.getElementById("newChance").value);
+      if (!isNaN(baru) && baru > 0 && baru <= 100) {
+        localStorage.setItem("winChance", baru);
+        alert("Peluang menang diubah!");
+        tampilkanData();
+      }
+    }
+
+    function tambahSaldo(nama) {
+  const jumlahStr = prompt("Tambah saldo berapa?", "10000");
+  const jumlah = parseInt(jumlahStr);
+  if (!isNaN(jumlah) && jumlah > 0) {
+    const key = "saldo_" + nama;
+    const saldoLama = parseInt(localStorage.getItem(key) || "0");
+    const total = saldoLama + jumlah;
+    localStorage.setItem(key, total);
+    alert(`Saldo ${nama} berhasil ditambah Rp${jumlah.toLocaleString()}`);
+    tampilkanData();
+  } else {
+    alert("Masukkan jumlah saldo yang valid.");
+  }
+}
+
+    function editSaldo(nama) {
+      const jumlah = prompt("Masukkan saldo baru:", "100000");
+      if (jumlah) {
+        localStorage.setItem("saldo_" + nama, parseInt(jumlah));
+        tampilkanData();
+      }
+    }
+
+    function resetSemuaSaldo() {
+      if (confirm("Yakin reset semua saldo ke 100000?")) {
+        for (let key in localStorage) {
+          if (key.startsWith("saldo_")) {
+            localStorage.setItem(key, 100000);
+          }
+        }
+        tampilkanData();
+      }
+    }
+
+    function hapusPlayer(nama) {
+      if (confirm("Hapus pemain ini?")) {
+        localStorage.removeItem("saldo_" + nama);
+        localStorage.removeItem("log_" + nama);
+        tampilkanData();
+      }
+    }
+
+    function lihatLog(nama) {
+      const logKey = "log_" + nama;
+      const log = JSON.parse(localStorage.getItem(logKey) || "[]");
+      const div = document.getElementById("logSemua");
+      div.innerHTML = `<h4>Log: ${nama}</h4>` + log.map(item => `
+        <p>${item.tanggal} - Taruhan: Rp${item.taruhan.toLocaleString()} - ${item.hasil} (Saldo: Rp${item.saldo.toLocaleString()})</p>
+      `).join('');
+    }
+
+    function logout() {
+      location.reload();
+    }
+  </script>
+</body>
+</html>

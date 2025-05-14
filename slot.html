@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Slot Mahjong Emoji</title>
+  <style>
+    body {
+      background: #1a1a1a;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    .container {
+      max-width: 450px;
+      margin: 40px auto;
+      background: #2c2c2c;
+      padding: 20px;
+      border-radius: 10px;
+      display: none;
+    }
+    .reels {
+      display: flex;
+      justify-content: space-around;
+      margin: 20px 0;
+    }
+    .reel {
+      width: 70px;
+      height: 70px;
+      background: #000;
+      border: 2px solid #fff;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      width: 80%;
+      font-size: 16px;
+      border-radius: 5px;
+      border: none;
+    }
+    #spinResult {
+      margin-top: 15px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Form Login User -->
+<div id="loginUserForm">
+  <h2>Masuk ke Slot Mahjong</h2>
+  <input type="text" id="inputUsername" placeholder="Masukkan Username">
+  <button onclick="loginUser()">Masuk</button>
+</div>
+
+<!-- Game Container -->
+<div class="container">
+  <h2>Slot Mahjong Emoji</h2>
+  <p>Saldo: Rp<span id="saldoTampil"></span></p>
+  <label>Taruhan (Rp):</label>
+  <input type="number" id="betAmount" value="400" min="400" max="100000" step="100">
+  <button onclick="spinGame()">SPIN</button>
+
+  <div class="reels">
+    <div class="reel" id="reel1">🀄</div>
+    <div class="reel" id="reel2">🀇</div>
+    <div class="reel" id="reel3">🀈</div>
+    <div class="reel" id="reel4">🀉</div>
+    <div class="reel" id="reel5">🀊</div>
+  </div>
+
+  <p id="spinResult"></p>
+  <button onclick="lihatLog()">Lihat Log</button>
+  <div id="logTransaksi"></div>
+</div>
+
+<!-- Tombol Admin -->
+<button onclick="toggleLoginForm()" id="adminBtn">Admin Login</button>
+
+<!-- Form Login Admin -->
+<div id="loginForm" style="display:none; margin-top:10px;">
+  <input type="text" id="adminUser" placeholder="Username Admin"><br>
+  <input type="password" id="adminPass" placeholder="Password"><br>
+  <button onclick="loginAdmin()">Login</button>
+</div>
+
+<script>
+  const emojiList = ["🀄", "🀇", "🀈", "🀉", "🀊", "🀋", "🀌", "🀍"];
+  const username = localStorage.getItem("username");
+  const saldoKey = "saldo_" + username;
+
+  if (username) {
+    document.querySelector(".container").style.display = "block";
+    document.getElementById("loginUserForm").style.display = "none";
+  }
+
+  let saldo = parseInt(localStorage.getItem(saldoKey) || "0");
+  if (username) {
+    document.getElementById("saldoTampil").innerText = saldo.toLocaleString();
+  }
+
+  function loginUser() {
+    const uname = document.getElementById("inputUsername").value.trim();
+    if (!uname) return alert("Masukkan username!");
+    localStorage.setItem("username", uname);
+    location.reload();
+  }
+
+  function spinGame() {
+    const bet = parseInt(document.getElementById("betAmount").value);
+    if (isNaN(bet) || bet < 400 || bet > 100000) {
+      return alert("Taruhan harus antara 400 - 100000!");
+    }
+    if (saldo < bet) {
+      return alert("Saldo tidak cukup, mohon deposit.");
+    }
+
+    saldo -= bet;
+    localStorage.setItem(saldoKey, saldo);
+    document.getElementById("saldoTampil").innerText = saldo.toLocaleString();
+
+    const winChance = parseInt(localStorage.getItem("winChance") || "10");
+    const menang = Math.random() * 100 < winChance;
+
+    let hasil = "Kalah! -Rp" + bet.toLocaleString();
+    let reels = [];
+
+    if (menang) {
+      const r = emojiList[Math.floor(Math.random() * emojiList.length)];
+      reels = [r, r, r, r, r];
+      const kemenangan = bet * 5;
+      saldo += kemenangan;
+      hasil = `Menang! +Rp${kemenangan.toLocaleString()}`;
+      localStorage.setItem(saldoKey, saldo);
+      document.getElementById("saldoTampil").innerText = saldo.toLocaleString();
+    } else {
+      for (let i = 0; i < 5; i++) {
+        reels.push(emojiList[Math.floor(Math.random() * emojiList.length)]);
+      }
+    }
+
+    for (let i = 0; i < 5; i++) {
+      document.getElementById(`reel${i + 1}`).innerText = reels[i];
+    }
+
+    document.getElementById("spinResult").innerText = hasil;
+
+    const logKey = "log_" + username;
+    let log = JSON.parse(localStorage.getItem(logKey) || "[]");
+    log.unshift({
+      tanggal: new Date().toLocaleString(),
+      taruhan: bet,
+      hasil: hasil,
+      saldo: saldo
+    });
+    localStorage.setItem(logKey, JSON.stringify(log));
+  }
+
+  function lihatLog() {
+    const logKey = "log_" + username;
+    const log = JSON.parse(localStorage.getItem(logKey) || "[]");
+    const div = document.getElementById("logTransaksi");
+    div.innerHTML = "<h3>Log Transaksi</h3>" + log.map(item => `
+      <p>${item.tanggal} - Taruhan: Rp${item.taruhan.toLocaleString()} - ${item.hasil} (Saldo: Rp${item.saldo.toLocaleString()})</p>
+    `).join('');
+  }
+
+  function toggleLoginForm() {
+    const form = document.getElementById("loginForm");
+    form.style.display = form.style.display === "none" ? "block" : "none";
+  }
+
+  function loginAdmin() {
+    const user = document.getElementById("adminUser").value;
+    const pass = document.getElementById("adminPass").value;
+
+    if (user === "admin" && pass === "12345") {
+      localStorage.setItem("adminLoggedIn", "true");
+      alert("Login berhasil!");
+      document.getElementById("adminBtn").innerText = "Panel Admin";
+      document.getElementById("adminBtn").onclick = () => location.href = "admin.html";
+      document.getElementById("loginForm").style.display = "none";
+    } else {
+      alert("Username atau password salah!");
+    }
+  }
+
+  window.onload = function() {
+    if (localStorage.getItem("adminLoggedIn") === "true") {
+      const btn = document.getElementById("adminBtn");
+      btn.innerText = "Panel Admin";
+      btn.onclick = () => location.href = "admin.html";
+      document.getElementById("loginForm").style.display = "none";
+    }
+  };
+</script>
+
+</body>
+</html>
