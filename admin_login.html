@@ -1,175 +1,86 @@
-<!DOCTYPE html><html lang="id">
+<!DOCTYPE html>
+<html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Admin Panel - Slot Mahjong</title>
+  <meta charset="UTF-8" />
+  <title>Login Admin</title>
   <style>
     body {
-      background: #111;
-      color: #fff;
-      font-family: Arial, sans-serif;
-      text-align: center;
+      font-family: sans-serif;
+      background: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
-    .container, .login-box {
-      max-width: 800px;
-      margin: 40px auto;
-      background: #222;
+    .login-box {
+      background: white;
       padding: 20px;
       border-radius: 10px;
+      box-shadow: 0 0 10px gray;
+      width: 300px;
+      text-align: center;
     }
     input, button {
+      width: 90%;
       padding: 10px;
-      margin: 5px;
-      font-size: 16px;
-      border-radius: 5px;
-      border: none;
-    }
-    table {
-      width: 100%;
-      margin-top: 20px;
-      border-collapse: collapse;
-    }
-    th, td {
-      padding: 8px;
-      border: 1px solid #444;
-    }
-    th {
-      background: #333;
-    }
-    .actions button {
-      margin: 2px;
-      font-size: 14px;
-    }
-    .log-area {
-      max-height: 300px;
-      overflow-y: auto;
-      background: #111;
-      padding: 10px;
-      text-align: left;
-      border: 1px solid #333;
-      border-radius: 5px;
+      margin-top: 10px;
     }
   </style>
 </head>
-<body>  <div id="loginBox" class="login-box">
+<body>
+  <div class="login-box">
     <h2>Login Admin</h2>
-    <input type="password" id="adminPass" placeholder="Masukkan password">
-    <button onclick="loginAdmin()">Login</button>
-    <p id="loginStatus"></p>
-  </div>  <div class="container" id="adminPanel" style="display:none">
-    <h2>Admin Panel - Slot Mahjong</h2><label>Atur Persentase Menang (0-100)</label><br>
-<input type="number" id="winChance" min="0" max="100" step="1">
-<button onclick="simpanWinChance()">Simpan</button>
-<p id="notifWin"></p>
+    <input type="text" id="username" placeholder="Username" required />
+    <input type="password" id="password" placeholder="Password" required />
+    <button onclick="loginAdmin()">Masuk</button>
+  </div>
 
-<h3>Data Pemain</h3>
-<button onclick="tampilkanPemain()">Tampilkan Semua Pemain</button>
-<table>
-  <thead>
-    <tr>
-      <th>Username</th>
-      <th>Saldo</th>
-      <th>Status</th>
-      <th>Aksi</th>
-    </tr>
-  </thead>
-  <tbody id="tabelPemain"></tbody>
-</table>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAThDmthe18wYK8uTKS6rdp1V6yGmzSHds",
+      authDomain: "slotmahjong-92afb.firebaseapp.com",
+      databaseURL: "https://slotmahjong-92afb-default-rtdb.firebaseio.com",
+      projectId: "slotmahjong-92afb",
+      storageBucket: "slotmahjong-92afb.appspot.com",
+      messagingSenderId: "700849730294",
+      appId: "1:700849730294:web:17736d11c28b4d381132d7"
+    };
+    const app = firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+  </script>
 
-<div id="logContainer" style="display:none">
-  <h3>Log Transaksi: <span id="logUsername"></span></h3>
-  <div class="log-area" id="logData"></div>
-</div>
-
-  </div>  <script>
-    const ADMIN_PASSWORD = "admin123";
-
+  <script>
     function loginAdmin() {
-      const input = document.getElementById("adminPass").value;
-      if (input === ADMIN_PASSWORD) {
-        document.getElementById("loginBox").style.display = "none";
-        document.getElementById("adminPanel").style.display = "block";
-        initAdmin();
-      } else {
-        document.getElementById("loginStatus").innerText = "Password salah!";
-      }
-    }
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
 
-    function simpanWinChance() {
-      const nilai = parseInt(document.getElementById("winChance").value);
-      if (isNaN(nilai) || nilai < 0 || nilai > 100) {
-        document.getElementById("notifWin").innerText = "Nilai tidak valid!";
+      if (!username || !password) {
+        alert("Isi semua kolom!");
         return;
       }
-      localStorage.setItem("winChance", nilai);
-      document.getElementById("notifWin").innerText = `Win chance disimpan: ${nilai}%`;
-    }
 
-    function tampilkanPemain() {
-      const tbody = document.getElementById("tabelPemain");
-      tbody.innerHTML = "";
-      for (let key in localStorage) {
-        if (key.startsWith("saldo_")) {
-          const username = key.replace("saldo_", "");
-          const saldo = parseInt(localStorage.getItem(key));
-          const blokir = localStorage.getItem("blokir_" + username) === "1";
-          const status = blokir ? "Blokir" : "Aktif";
-
-          tbody.innerHTML += `
-            <tr>
-              <td>${username}</td>
-              <td>Rp${saldo.toLocaleString()}</td>
-              <td>${status}</td>
-              <td class="actions">
-                <button onclick="resetSaldo('${username}')">Reset</button>
-                <button onclick="toggleBlokir('${username}')">${blokir ? 'Buka Blokir' : 'Blokir'}</button>
-                <button onclick="lihatLog('${username}')">Lihat Log</button>
-                <button onclick="hapusAkun('${username}')">Hapus</button>
-              </td>
-            </tr>`;
+      const ref = database.ref("admin_akun/" + username);
+      ref.get().then(snapshot => {
+        if (!snapshot.exists()) {
+          alert("Username tidak ditemukan.");
+        } else {
+          const data = snapshot.val();
+          if (data.password === password) {
+            // Simpan status login jika ingin
+            sessionStorage.setItem("admin_login", username);
+            window.location.href = "admin_panel.html";
+          } else {
+            alert("Password salah.");
+          }
         }
-      }
+      }).catch(error => {
+        console.error("Error login:", error);
+        alert("Terjadi kesalahan saat login.");
+      });
     }
-
-    function resetSaldo(username) {
-      localStorage.setItem("saldo_" + username, 50000);
-      alert("Saldo " + username + " telah direset ke Rp50.000");
-      tampilkanPemain();
-    }
-
-    function toggleBlokir(username) {
-      const status = localStorage.getItem("blokir_" + username);
-      if (status === "1") {
-        localStorage.removeItem("blokir_" + username);
-      } else {
-        localStorage.setItem("blokir_" + username, "1");
-      }
-      tampilkanPemain();
-    }
-
-    function lihatLog(username) {
-      const logs = JSON.parse(localStorage.getItem("log_" + username) || "[]");
-      const logContainer = document.getElementById("logContainer");
-      const logArea = document.getElementById("logData");
-      const logUsername = document.getElementById("logUsername");
-
-      logUsername.textContent = username;
-      logArea.innerHTML = logs.length === 0 ? "Tidak ada log." : logs.map(log => `<div>${log}</div>`).join("");
-      logContainer.style.display = "block";
-    }
-
-    function hapusAkun(username) {
-      if (confirm("Yakin ingin menghapus akun " + username + "?")) {
-        localStorage.removeItem("saldo_" + username);
-        localStorage.removeItem("blokir_" + username);
-        localStorage.removeItem("log_" + username);
-        alert("Akun " + username + " telah dihapus.");
-        tampilkanPemain();
-      }
-    }
-
-    function initAdmin() {
-      const win = parseInt(localStorage.getItem("winChance") || "30");
-      document.getElementById("winChance").value = win;
-    }
-  </script></body>
+  </script>
+</body>
 </html>
