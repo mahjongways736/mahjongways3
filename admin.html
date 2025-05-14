@@ -50,10 +50,9 @@
       storageBucket: "slotmahjong-92afb.appspot.com",
       messagingSenderId: "700849730294",
       appId: "1:700849730294:web:17736d11c28b4d381132d7"
-    };// Inisialisasi Firebase
-const app = firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
   </script>
 </head>
 <body>
@@ -62,20 +61,25 @@ const database = firebase.database();
     <input type="password" id="adminPass" placeholder="Password Admin" />
     <button onclick="loginAdmin()">Login</button>
     <p id="loginMsg"></p>
-  </div>  <div class="container hidden" id="adminPanel">
+  </div>
+
+  <div class="container hidden" id="adminPanel">
     <h2>Admin Panel</h2>
     <p>Peluang Menang Saat Ini: <span id="currentChance"></span>%</p>
     <input type="number" id="newChance" min="1" max="100" placeholder="Ubah peluang menang (1-100)" />
-    <button onclick="ubahPeluang()">Update Peluang</button><h3>Daftar Pemain</h3>
-<div id="playersList"></div>
+    <button onclick="ubahPeluang()">Update Peluang</button>
 
-<button onclick="resetSemuaSaldo()">Reset Semua Saldo</button>
-<button onclick="logout()">Logout</button>
+    <h3>Daftar Pemain</h3>
+    <div id="playersList"></div>
 
-<h3>Log Transaksi Semua Pemain</h3>
-<div id="logSemua"></div>
+    <button onclick="resetSemuaSaldo()">Reset Semua Saldo</button>
+    <button onclick="logout()">Logout</button>
 
-  </div>  <script>
+    <h3>Log Transaksi Semua Pemain</h3>
+    <div id="logSemua"></div>
+  </div>
+
+  <script>
     const adminPassword = "admin123";
 
     function loginAdmin() {
@@ -90,7 +94,7 @@ const database = firebase.database();
     }
 
     function tampilkanData() {
-      database.ref("settings/winChance").get().then(snapshot => {
+      database.ref("settings/winChance").once("value", snapshot => {
         const current = snapshot.exists() ? snapshot.val() : 25;
         document.getElementById("currentChance").innerText = current;
       });
@@ -131,7 +135,7 @@ const database = firebase.database();
       const jumlah = parseInt(jumlahStr);
       if (!isNaN(jumlah) && jumlah > 0) {
         const saldoRef = database.ref("players/" + nama + "/saldo");
-        saldoRef.get().then(snapshot => {
+        saldoRef.once("value", snapshot => {
           const saldoLama = snapshot.exists() ? snapshot.val() : 0;
           saldoRef.set(saldoLama + jumlah).then(() => {
             alert(`Saldo ${nama} berhasil ditambah Rp${jumlah.toLocaleString()}`);
@@ -189,5 +193,6 @@ const database = firebase.database();
     function logout() {
       location.reload();
     }
-  </script></body>
+  </script>
+</body>
 </html>
