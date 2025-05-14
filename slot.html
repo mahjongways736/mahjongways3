@@ -1,112 +1,96 @@
-<!DOCTYPE html><html lang="id">
+<!DOCTYPE html>
+<html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Slot Mahjong Emoji</title>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getDatabase, ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";const firebaseConfig = {
-  apiKey: "AIzaSyAThDmthe18wYK8uTKS6rdp1V6yGmzSHds",
-  authDomain: "slotmahjong-92afb.firebaseapp.com",
-  databaseURL: "https://slotmahjong-92afb-default-rtdb.firebaseio.com",
-  projectId: "slotmahjong-92afb",
-  storageBucket: "slotmahjong-92afb.appspot.com",
-  messagingSenderId: "700849730294",
-  appId: "1:700849730294:web:17736d11c28b4d381132d7"
-};
-
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
-
-let username = localStorage.getItem("username") || "";
-let saldo = 0;
-
-function updateUI() {
-  document.getElementById("saldoTampil").innerText = saldo.toLocaleString();
-}
-
-function loadSaldo(uname) {
-  const saldoRef = ref(database, 'users/' + uname + '/saldo');
-  onValue(saldoRef, (snapshot) => {
-    saldo = snapshot.exists() ? snapshot.val() : 0;
-    updateUI();
-  });
-}
-
-function loginUser() {
-  const uname = document.getElementById("inputUsername").value.trim();
-  if (!uname) return alert("Masukkan username!");
-  localStorage.setItem("username", uname);
-  username = uname;
-  document.querySelector(".container").style.display = "block";
-  document.getElementById("loginUserForm").style.display = "none";
-  loadSaldo(uname);
-}
-
-window.loginUser = loginUser;
-
-window.onload = function() {
-  if (username) {
-    document.querySelector(".container").style.display = "block";
-    document.getElementById("loginUserForm").style.display = "none";
-    loadSaldo(username);
-  }
-
-  if (localStorage.getItem("adminLoggedIn") === "true") {
-    const btn = document.getElementById("adminBtn");
-    btn.innerText = "Panel Admin";
-    btn.onclick = () => location.href = "admin.html";
-    document.getElementById("loginForm").style.display = "none";
-  }
-}
-
-  </script>
+  <meta charset="UTF-8" />
+  <title>Slot Mahjong</title>
   <style>
-    body { background: #1a1a1a; color: #fff; font-family: Arial, sans-serif; text-align: center; }
-    .container {
-      max-width: 450px; margin: 40px auto; background: #2c2c2c; padding: 20px;
-      border-radius: 10px; display: none;
-    }
-    .reels { display: flex; justify-content: space-around; margin: 20px 0; }
-    .reel {
-      width: 70px; height: 70px; background: #000; border: 2px solid #fff;
-      border-radius: 8px; display: flex; align-items: center;
-      justify-content: center; font-size: 40px;
-    }
-    input, button {
-      padding: 10px; margin: 5px; width: 80%; font-size: 16px;
-      border-radius: 5px; border: none;
-    }
-    #spinResult { margin-top: 15px; font-size: 18px; }
+    body { font-family: sans-serif; padding: 20px; }
+    .saldo { font-size: 20px; margin-bottom: 10px; }
+    button { padding: 10px 20px; margin-top: 10px; }
+    .log { margin-top: 20px; }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAThDmthe18wYK8uTKS6rdp1V6yGmzSHds",
+      authDomain: "slotmahjong-92afb.firebaseapp.com",
+      databaseURL: "https://slotmahjong-92afb-default-rtdb.firebaseio.com",
+      projectId: "slotmahjong-92afb",
+      storageBucket: "slotmahjong-92afb.appspot.com",
+      messagingSenderId: "700849730294",
+      appId: "1:700849730294:web:17736d11c28b4d381132d7"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
 </head>
 <body>
-  <div id="loginUserForm">
-    <h2>Masuk ke Slot Mahjong</h2>
-    <input type="text" id="inputUsername" placeholder="Masukkan Username">
-    <button onclick="loginUser()">Masuk</button>
-  </div>  <div class="container">
-    <h2>Slot Mahjong Emoji</h2>
-    <p>Saldo: Rp<span id="saldoTampil">0</span></p>
-    <label>Taruhan (Rp):</label>
-    <input type="number" id="betAmount" value="400" min="400" max="100000" step="100">
-    <button onclick="spinGame()">SPIN</button><div class="reels">
-  <div class="reel" id="reel1">🀄</div>
-  <div class="reel" id="reel2">🀇</div>
-  <div class="reel" id="reel3">🀈</div>
-  <div class="reel" id="reel4">🀉</div>
-  <div class="reel" id="reel5">🀊</div>
-</div>
+  <div class="saldo">Saldo: <span id="saldo">Rp0</span></div>
+  <button onclick="putarSlot()">Putar Slot (-Rp100)</button>
 
-<p id="spinResult"></p>
-<button onclick="lihatLog()">Lihat Log</button>
-<div id="logTransaksi"></div>
-
-  </div><button onclick="toggleLoginForm()" id="adminBtn" style="margin-top: 20px;">Admin Login</button>
-
-  <div id="loginForm" style="display:none; margin-top:10px;">
-    <input type="text" id="adminUser" placeholder="Username Admin"><br>
-    <input type="password" id="adminPass" placeholder="Password"><br>
-    <button onclick="loginAdmin()">Login</button>
+  <div class="log">
+    <h3>Riwayat</h3>
+    <ul id="logList"></ul>
   </div>
+
+  <script>
+    const username = sessionStorage.getItem("mahjong_user");
+    if (!username) {
+      alert("Kamu belum login!");
+      window.location.href = "login.html";
+    }
+
+    const saldoEl = document.getElementById("saldo");
+    const logEl = document.getElementById("logList");
+    const userRef = db.ref("players/" + username);
+
+    function formatRupiah(number) {
+      return 'Rp' + number.toLocaleString('id-ID');
+    }
+
+    // Ambil saldo & log dari Firebase
+    function loadData() {
+      userRef.once("value").then(snapshot => {
+        const data = snapshot.val();
+        saldoEl.textContent = formatRupiah(data?.saldo || 0);
+        const logs = data?.log || [];
+        logEl.innerHTML = "";
+        logs.slice(-10).reverse().forEach(item => {
+          const li = document.createElement("li");
+          li.textContent = item;
+          logEl.appendChild(li);
+        });
+      });
+    }
+
+    function putarSlot() {
+      userRef.once("value").then(snapshot => {
+        const data = snapshot.val();
+        let saldo = data?.saldo || 0;
+        if (saldo < 100) {
+          alert("Saldo tidak cukup!");
+          return;
+        }
+
+        saldo -= 100;
+        const hasil = Math.random() < 0.3 ? "Menang Rp500" : "Kalah";
+        const menang = hasil.includes("Menang");
+
+        if (menang) saldo += 500;
+
+        const log = data?.log || [];
+        log.push(`${new Date().toLocaleString()} - ${hasil}`);
+
+        // Update ke Firebase
+        userRef.set({ saldo: saldo, log: log }).then(() => {
+          loadData();
+        });
+      });
+    }
+
+    // Load awal
+    loadData();
+  </script>
 </body>
 </html>
