@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Spaceman Lokal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: sans-serif; background: #000; color: #fff; text-align: center; padding: 20px; }
+    #game { margin-top: 20px; }
+    .multiplier { font-size: 3em; margin: 20px 0; }
+    input, button { padding: 10px; margin: 5px; border: none; border-radius: 5px; }
+    button { cursor: pointer; }
+    #history, #leaderboard { margin-top: 20px; text-align: left; }
+    .btn-wa { background: green; color: white; }
+    .login-box { margin-top: 100px; }
+  </style>
+</head>
+<body>
+
+<div id="login" class="login-box">
+  <h2>Login</h2>
+  <input id="usernameInput" placeholder="Masukkan Username">
+  <button onclick="login()">Masuk</button>
+  <button onclick="loginAdmin()">Login Admin</button>
+</div>
+
+<div id="main" style="display:none;">
+  <h2>Selamat datang, <span id="usernameLabel"></span></h2>
+  <h3>Saldo: Rp<span id="saldoLabel">0</span></h3>
+
+  <input id="betAmount" type="number" placeholder="Jumlah Taruhan">
+  <button onclick="startGame()">Taruhan</button>
+  <button onclick="cashout()">Cashout</button>
+
+  <div class="multiplier" id="multiplier">x1.00</div>
+
+  <button class="btn-wa" onclick="depositWhatsApp()">Deposit</button>
+  <button class="btn-wa" onclick="withdrawWhatsApp()">Withdraw</button>
+
+  <div id="history">
+    <h3>History Crash</h3>
+    <ul id="crashHistory"></ul>
+  </div>
+
+  <div id="leaderboard">
+    <h3>Leaderboard</h3>
+    <ul id="topPlayers"></ul>
+  </div>
+</div>
+
+<script>
+  // Login
+  function login() {
+    const username = document.getElementById("usernameInput").value;
+    if (!username) return alert("Masukkan username.");
+    localStorage.setItem("username", username);
+    if (!localStorage.getItem(username + "_saldo")) localStorage.setItem(username + "_saldo", "0");
+    document.getElementById("login").style.display = "none";
+    document.getElementById("main").style.display = "block";
+    updateDisplay();
+  }
+
+  function updateDisplay() {
+    const username = localStorage.getItem("username");
+    const saldo = parseInt(localStorage.getItem(username + "_saldo") || "0");
+    document.getElementById("usernameLabel").textContent = username;
+    document.getElementById("saldoLabel").textContent = saldo.toLocaleString();
+    showCrashHistory();
+    showLeaderboard();
+  }
+
+  // Game logic
+  let multiplier = 1.00;
+  let gameInterval;
+  let isGameRunning = false;
+  let hasBet = false;
+  let betAmount = 0;
+
+  function startGame() {
+    if (isGameRunning) return alert("Game sedang berlangsung...");
+    const username = localStorage.getItem("username");
+    betAmount = parseInt(document.getElementById("betAmount").value);
+    let saldo = parseInt(localStorage.getItem(username + "_saldo") || "0");
+    if (!betAmount || betAmount <= 0) return alert("Isi taruhan dengan benar.");
+    if (betAmount > saldo) return alert("Saldo tidak cukup.");
+
+    saldo -= betAmount;
+    localStorage.setItem(username + "_saldo", saldo);
+    updateDisplay();
+
+    multiplier = 1.00;
+    isGameRunning = true;
+    hasBet = true;
+    document.getElementById("multiplier").textContent = "x1.00";
+
+    const crashPoint = generateCrashPoint();
+    gameInterval = setInterval(() => {
+      multiplier += 0.01;
+      document.getElementById("multiplier").textContent = "x" + multiplier.toFixed(2);
+      if (multiplier >= crashPoint) {
+        endGame(false);
+      }
+    }, 50);
+  }
+
+  function cashout() {
+    if (!isGameRunning || !hasBet) return;
+    endGame(true);
+  }
+
+  function endGame(won) {
+    clearInterval(gameInterval);
+    isGameRunning = false;
+    const username = localStorage.getItem("username");
+    let saldo = parseInt(localStorage.getItem(username + "_saldo") || "0");
+
+    if (won) {
+      let menang = Math.floor(betAmount * multiplier);
+      saldo += menang;
+      alert(`Cashout berhasil di x${multiplier.toFixed(2)}! Menang Rp${menang.toLocaleString()}`);
+    } else {
+      alert(`Crash di x${multiplier.toFixed(2)}. Anda kalah.`);
+    }
+
+    localStorage.setItem(username + "_saldo", saldo);
+    updateLeaderboard(username, saldo);
+    saveCrashHistory(multiplier.toFixed(2));
+    updateDisplay();
+    hasBet = false;
+  }
+
+  function generateCrashPoint() {
+    const r = Math.random();
+    if (r < 0.95) return (1 + Math.random() * 0.35); // 95% antara x1.00 – x1.45
+    return 8.0; // 5% kemungkinan x8
+  }
+
+  // Leaderboard
+  function updateLeaderboard(user, saldo) {
+    let data = JSON.parse(localStorage.getItem("leaderboard") || "{}");
+    data[user] = saldo;
+    localStorage.setItem("leaderboard", JSON.stringify(data));
+  }
+
+  function showLeaderboard() {
+    const el = document.getElementById("topPlayers");
+    el.innerHTML = "";
+    let data = JSON.parse(localStorage.getItem("leaderboard") || "{}");
+    let sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
+    sorted.slice(0, 10).forEach(([user, saldo]) => {
+      el.innerHTML += `<li>${user}: Rp${saldo.toLocaleString()}</li>`;
+    });
+  }
+
+  // History
+  function saveCrashHistory(mult) {
+    let history = JSON.parse(localStorage.getItem("crash_history") || "[]");
+    history.unshift(mult);
+    if (history.length > 20) history.pop();
+    localStorage.setItem("crash_history", JSON.stringify(history));
+  }
+
+  function showCrashHistory() {
+    const el = document.getElementById("crashHistory");
+    el.innerHTML = "";
+    let history = JSON.parse(localStorage.getItem("crash_history") || "[]");
+    history.forEach(m => {
+      el.innerHTML += `<li>x${m}</li>`;
+    });
+  }
+
+  // WhatsApp Deposit/Withdraw
+  function depositWhatsApp() {
+    const username = localStorage.getItem("username");
+    const saldo = localStorage.getItem(username + "_saldo") || "0";
+    const wa = "6281234567890"; // ganti dengan nomor admin
+    const pesan = `Halo Admin, saya ingin DEPOSIT saldo.%0AUsername: ${username}%0ASaldo Saat Ini: Rp${saldo}%0ANominal Deposit: Rp`;
+    window.open(`https://wa.me/${wa}?text=${pesan}`, "_blank");
+  }
+
+  function withdrawWhatsApp() {
+    const username = localStorage.getItem("username");
+    const saldo = localStorage.getItem(username + "_saldo") || "0";
+    const wa = "6281234567890"; // ganti dengan nomor admin
+    const pesan = `Halo Admin, saya ingin WITHDRAW saldo.%0AUsername: ${username}%0ASaldo Saat Ini: Rp${saldo}%0ANominal Withdraw: Rp`;
+    window.open(`https://wa.me/${wa}?text=${pesan}`, "_blank");
+  }
+
+  // Auto-login if already logged in
+  window.onload = () => {
+    if (localStorage.getItem("username")) {
+      document.getElementById("login").style.display = "none";
+      document.getElementById("main").style.display = "block";
+      updateDisplay();
+    }
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Spaceman</title>
+  <style>
+    body { font-family: Arial; background: #111; color: #fff; padding: 20px; }
+    input, button { margin: 5px; padding: 5px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #555; padding: 5px; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <div id="loginBox">
+    <h2>Login Admin</h2>
+    <input id="adminUser" placeholder="Username">
+    <input id="adminPass" type="password" placeholder="Password">
+    <button onclick="loginAdmin()">Login</button>
+  </div>
+
+  <div id="adminPanel" style="display:none;">
+    <h2>Panel Admin</h2>
+    <button onclick="logoutAdmin()">Logout</button>
+
+    <h3>Atur Crash Global</h3>
+    <input id="crashInput" type="number" step="0.01" placeholder="Contoh: 3.75">
+    <button onclick="aturCrash()">Set Crash</button>
+    <p>Crash saat ini: <span id="crashNow"></span></p>
+
+    <h3>Kirim Saldo</h3>
+    <input id="userTarget" placeholder="Username">
+    <input id="jumlahSaldo" type="number" placeholder="Jumlah Rp">
+    <button onclick="kirimSaldo()">Kirim</button>
+
+    <h3>Blokir / Buka Blokir</h3>
+    <input id="userBlokir" placeholder="Username">
+    <button onclick="blokir()">Blokir</button>
+    <button onclick="bukaBlokir()">Buka Blokir</button>
+
+    <h3>Hapus User</h3>
+    <input id="userHapus" placeholder="Username">
+    <button onclick="hapusUser()">Hapus</button>
+
+    <h3>Daftar User & Saldo</h3>
+    <table>
+      <thead><tr><th>Username</th><th>Saldo</th></tr></thead>
+      <tbody id="userTable"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const adminCredentials = {
+      username: "admin",
+      password: "vinzz"  // Ganti dengan password kuat
+    };
+
+    function loginAdmin() {
+      const user = document.getElementById("adminUser").value;
+      const pass = document.getElementById("adminPass").value;
+      if (user === adminCredentials.username && pass === adminCredentials.password) {
+        sessionStorage.setItem("admin_login", "true");
+        tampilkanPanel();
+      } else {
+        alert("Username atau password salah!");
+      }
+    }
+
+    function tampilkanPanel() {
+      document.getElementById("loginBox").style.display = "none";
+      document.getElementById("adminPanel").style.display = "block";
+      tampilkanUser();
+      tampilkanCrash();
+    }
+
+    function logoutAdmin() {
+      sessionStorage.removeItem("admin_login");
+      location.reload();
+    }
+
+    function cekLogin() {
+      if (sessionStorage.getItem("admin_login") === "true") {
+        tampilkanPanel();
+      }
+    }
+
+    function aturCrash() {
+      let x = parseFloat(document.getElementById("crashInput").value);
+      if (!x || x < 1) return alert("Nilai crash tidak valid!");
+      localStorage.setItem("crash_global", x.toFixed(2));
+      tampilkanCrash();
+      alert("Crash telah diatur ke x" + x.toFixed(2));
+    }
+
+    function tampilkanCrash() {
+      document.getElementById("crashNow").innerText = localStorage.getItem("crash_global") || "-";
+    }
+
+    function kirimSaldo() {
+      let user = document.getElementById("userTarget").value;
+      let jml = parseInt(document.getElementById("jumlahSaldo").value);
+      if (!user || !jml) return alert("Isi semua kolom");
+      let saldo = parseInt(localStorage.getItem(user + "_saldo") || "0");
+      saldo += jml;
+      localStorage.setItem(user + "_saldo", saldo);
+      alert("Saldo dikirim!");
+      tampilkanUser();
+    }
+
+    function blokir() {
+      let user = document.getElementById("userBlokir").value;
+      localStorage.setItem(user + "_blokir", "true");
+      alert(user + " diblokir.");
+    }
+
+    function bukaBlokir() {
+      let user = document.getElementById("userBlokir").value;
+      localStorage.removeItem(user + "_blokir");
+      alert(user + " dibuka blokir.");
+    }
+
+    function hapusUser() {
+      let user = document.getElementById("userHapus").value;
+      localStorage.removeItem(user + "_saldo");
+      localStorage.removeItem(user + "_blokir");
+      let leaderboard = JSON.parse(localStorage.getItem("leaderboard") || "{}");
+      delete leaderboard[user];
+      localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
+      alert("User dihapus!");
+      tampilkanUser();
+    }
+
+    function tampilkanUser() {
+      let data = JSON.parse(localStorage.getItem("leaderboard") || "{}");
+      let tbody = "";
+      for (let user in data) {
+        tbody += `<tr><td>${user}</td><td>Rp ${data[user]}</td></tr>`;
+      }
+      document.getElementById("userTable").innerHTML = tbody;
+    }
+
+    window.onload = cekLogin;
+  </script>
+
+</body>
+</html>
